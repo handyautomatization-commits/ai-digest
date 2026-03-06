@@ -1,0 +1,61 @@
+name: AI Weekly Digest
+
+on:
+  # ── Automatic: every Monday at 09:00 Moscow time (UTC+3) = 06:00 UTC ──
+  # If you are in UTC+2 (e.g. Romania/EET), change "0 6" → "0 7"
+  schedule:
+    - cron: "0 6 * * 1"
+
+  # ── Manual: "Run workflow" button in GitHub → Actions tab ──
+  # Use this to test without waiting for Monday!
+  workflow_dispatch:
+
+# Required to commit last_run.json back to the repo
+permissions:
+  contents: write
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out the repo (including last_run.json)
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Set up Python 3.11
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # 3. Cache pip packages to speed up runs
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # 4. Install dependencies
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # 5. Run the digest pipeline
+      - name: Run digest
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: python main.py
+
+      # 6. Commit the updated last_run.json so next run knows where to start
+      - name: Save last_run.json
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add last_run.json
+          # Only commit if the file actually changed
+          git diff --staged --quiet || git commit -m "chore: update last_run timestamp [skip ci]"
+          git push
