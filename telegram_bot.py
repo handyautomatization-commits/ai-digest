@@ -3,6 +3,7 @@ telegram_bot.py — Sends the formatted digest to a Telegram channel.
 """
 
 import os
+import time
 
 import requests
 
@@ -21,8 +22,9 @@ def send_message(text: str) -> None:
     print(f"📨 Sending {len(chunks)} message(s) to Telegram...")
 
     for i, chunk in enumerate(chunks, start=1):
-        label = f"(Part {i}/{len(chunks)})\n" if len(chunks) > 1 else ""
-        _send_chunk(token, chat_id, label + chunk)
+        if i > 1:
+            time.sleep(2)  # Avoid Telegram rate limiting between messages
+        _send_chunk(token, chat_id, chunk)
 
 
 def _split(text: str) -> list:

@@ -46,19 +46,26 @@ OUTPUT FORMAT (Telegram HTML only — zero Markdown):
 ─────────────────
 
 🚀 <b>Model Releases & Updates</b>
+
 • <b>[Short title]</b> — [2 sentences: what it is + why it matters]. ⭐[X]/10 | <a href="[URL]">Read →</a>
 
+• <b>[Short title]</b> — [2 sentences]. ⭐[X]/10 | <a href="[URL]">Read →</a>
+
 🔬 <b>Research Breakthroughs</b>
-• ...
+
+• <b>[Short title]</b> — [2 sentences]. ⭐[X]/10 | <a href="[URL]">Read →</a>
 
 🛠️ <b>Tools & Features</b>
-• ... (put Cursor / vibe coding news here if present)
+
+• <b>[Short title]</b> — [2 sentences]. ⭐[X]/10 | <a href="[URL]">Read →</a>
 
 📊 <b>Benchmarks & Comparisons</b>
-• ... (include model comparisons, leaderboard changes)
+
+• <b>[Short title]</b> — [2 sentences]. ⭐[X]/10 | <a href="[URL]">Read →</a>
 
 🌍 <b>Industry News</b>
-• ...
+
+• <b>[Short title]</b> — [2 sentences]. ⭐[X]/10 | <a href="[URL]">Read →</a>
 
 ─────────────────
 
@@ -70,13 +77,15 @@ OUTPUT FORMAT (Telegram HTML only — zero Markdown):
 STRICT RULES:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 1. Only include blocks that have relevant content — skip empty blocks entirely.
-2. Max 4 items per block. Choose the most impactful ones.
-3. Impact score guide: 10 = AGI-level event | 8-9 = major model release | 6-7 = important feature | 4-5 = tool update | 1-3 = minor news.
-4. Every item MUST end with: ⭐X/10 | <a href="URL">Read →</a>
-5. Use ONLY these HTML tags: <b>, <i>, <a href="">. NO markdown (no **, no __, no ##).
-6. Skip opinion pieces, duplicate items, or vague/minor updates.
-7. Total output MUST be under 3800 characters.
-8. Never invent facts — only use what is in the data below.
+2. MAXIMUM 3 items per block. Choose only the most impactful ones.
+3. MAXIMUM 2 items from the same source across the ENTIRE digest (no OpenAI-only digests).
+4. Impact score guide: 10 = AGI-level event | 8-9 = major model release | 6-7 = important feature | 4-5 = tool update | 1-3 = minor news.
+5. Every item MUST end with: ⭐X/10 | <a href="URL">Read →</a>
+6. Put a BLANK LINE between every bullet point (as shown in the format above).
+7. Use ONLY these HTML tags: <b>, <i>, <a href="">. NO markdown (no **, no __, no ##).
+8. Skip opinion pieces, duplicate items, or vague/minor updates.
+9. CRITICAL: Total output MUST be under 3000 characters. Count carefully.
+10. Never invent facts — only use what is in the data below.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 NEWS ITEMS (JSON):
