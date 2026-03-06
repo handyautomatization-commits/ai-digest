@@ -1,12 +1,15 @@
 """
 processor.py — Sends collected articles to DeepSeek and returns a formatted digest.
+Uses requests directly (no openai SDK needed).
 """
 
 import json
 import os
 from datetime import datetime, timezone
 
-from openai import OpenAI
+import requests
+
+DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
 
 
 def _build_prompt(articles: list) -> str:
@@ -83,25 +86,30 @@ NEWS ITEMS (JSON):
 
 def process_with_deepseek(articles: list) -> str:
     """Send articles to DeepSeek and return a Telegram-ready digest string."""
-    client = OpenAI(
-        api_key=os.environ["DEEPSEEK_API_KEY"],
-        base_url="https://api.deepseek.com",
-    )
-
     prompt = _build_prompt(articles)
     print(f"📤 Sending {len(articles)} items to DeepSeek...")
 
-    response = client.chat.completions.create(
-        model="deepseek-chat",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=2500,
-        temperature=0.4,  # Lower = more factual, less creative hallucination
+    resp = requests.post(
+        DEEPSEEK_URL,
+        headers={
+            "Authorization": f"Bearer {os.environ['DEEPSEEK_API_KEY']}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": "deepseek-chat",
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 2500,
+            "temperature": 0.4,
+        },
+        timeout=120,
     )
+    resp.raise_for_status()
 
-    digest = response.choices[0].message.content.strip()
-    usage = response.usage
+    data = resp.json()
+    digest = data["choices"][0]["message"]["content"].strip()
+    usage = data.get("usage", {})
     print(
         f"📥 Digest received ({len(digest)} chars) | "
-        f"Tokens: {usage.prompt_tokens} in / {usage.completion_tokens} out"
+        f"Tokens: {usage.get('prompt_tokens', '?')} in / {usage.get('completion_tokens', '?')} out"
     )
     return digest
