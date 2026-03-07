@@ -5,16 +5,14 @@ Uses requests directly (no openai SDK needed).
 
 import json
 import os
-from datetime import datetime, timezone
 
 import requests
 
 DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
 
 
-def _build_prompt(articles: list) -> str:
+def _build_prompt(articles: list, issue_number: int, week_label: str) -> str:
     """Construct the prompt for DeepSeek."""
-    week_label = datetime.now(timezone.utc).strftime("Week of %B %d, %Y")
 
     # Trim to 60 items max and simplify fields to save tokens
     simplified = [
@@ -31,15 +29,16 @@ def _build_prompt(articles: list) -> str:
 
     items_json = json.dumps(simplified, ensure_ascii=False)
 
-    return f"""You are an AI news curator. Create a weekly digest for a PUBLIC Telegram channel about AI breakthroughs and updates.
+    return f"""You are an AI news curator. Create a weekly digest for a PUBLIC Telegram channel called "Squeezed AI" about AI breakthroughs and updates.
 
+ISSUE: #{issue_number}
 WEEK: {week_label}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 OUTPUT FORMAT (Telegram HTML only — zero Markdown):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🤖 <b>AI Weekly Digest — {week_label}</b>
+🤖 <b>Squeezed AI #{issue_number} — {week_label}</b>
 
 [2-sentence intro: highlight the biggest theme of this week]
 
@@ -47,25 +46,32 @@ OUTPUT FORMAT (Telegram HTML only — zero Markdown):
 
 🚀 <b>Model Releases & Updates</b>
 
-• <b>[Short title]</b> — [2 sentences: what it is + why it matters]. ⭐[X]/10 | <a href="[URL]">Read →</a>
+• <b>[Short title]</b> — [2 sentences: what it is + why it matters].
+<i>↗ vs [previous model name]: [one key improvement, e.g. "+30% on coding benchmarks, 2× cheaper"]</i>
+⭐[X]/10 | <a href="[URL]">Read →</a>
 
-• <b>[Short title]</b> — [2 sentences]. ⭐[X]/10 | <a href="[URL]">Read →</a>
+• <b>[Short title]</b> — [2 sentences].
+⭐[X]/10 | <a href="[URL]">Read →</a>
 
 🔬 <b>Research Breakthroughs</b>
 
-• <b>[Short title]</b> — [2 sentences]. ⭐[X]/10 | <a href="[URL]">Read →</a>
+• <b>[Short title]</b> — [2 sentences].
+⭐[X]/10 | <a href="[URL]">Read →</a>
 
 🛠️ <b>Tools & Features</b>
 
-• <b>[Short title]</b> — [2 sentences]. ⭐[X]/10 | <a href="[URL]">Read →</a>
+• <b>[Short title]</b> — [2 sentences].
+⭐[X]/10 | <a href="[URL]">Read →</a>
 
 📊 <b>Benchmarks & Comparisons</b>
 
-• <b>[Short title]</b> — [2 sentences]. ⭐[X]/10 | <a href="[URL]">Read →</a>
+• <b>[Short title]</b> — [2 sentences].
+⭐[X]/10 | <a href="[URL]">Read →</a>
 
 🌍 <b>Industry News</b>
 
-• <b>[Short title]</b> — [2 sentences]. ⭐[X]/10 | <a href="[URL]">Read →</a>
+• <b>[Short title]</b> — [2 sentences].
+⭐[X]/10 | <a href="[URL]">Read →</a>
 
 ─────────────────
 
@@ -73,19 +79,22 @@ OUTPUT FORMAT (Telegram HTML only — zero Markdown):
 
 <i>📡 Sources: Official AI blogs · r/LocalLLaMA · r/MachineLearning · Hacker News</i>
 
+#AI #LLM #MachineLearning #SqueezedAI
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 STRICT RULES:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 1. Only include blocks that have relevant content — skip empty blocks entirely.
 2. MAXIMUM 3 items per block. Choose only the most impactful ones.
 3. MAXIMUM 2 items from the same source across the ENTIRE digest (no OpenAI-only digests).
-4. Impact score guide: 10 = AGI-level event | 8-9 = major model release | 6-7 = important feature | 4-5 = tool update | 1-3 = minor news.
-5. Every item MUST end with: ⭐X/10 | <a href="URL">Read →</a>
-6. Put a BLANK LINE between every bullet point (as shown in the format above).
-7. Use ONLY these HTML tags: <b>, <i>, <a href="">. NO markdown (no **, no __, no ##).
-8. Skip opinion pieces, duplicate items, or vague/minor updates.
-9. CRITICAL: Total output MUST be under 3000 characters. Count carefully.
-10. Never invent facts — only use what is in the data below.
+4. "New vs Previous" line (↗): ONLY add it for model releases where you know the predecessor (e.g. GPT-4 → GPT-4o). Skip it if uncertain — never invent comparisons.
+5. Impact score guide: 10 = AGI-level event | 8-9 = major model release | 6-7 = important feature | 4-5 = tool update | 1-3 = minor news.
+6. Every item MUST end with: ⭐X/10 | <a href="URL">Read →</a>
+7. Put a BLANK LINE between every bullet point (as shown in the format above).
+8. Use ONLY these HTML tags: <b>, <i>, <a href="">. NO markdown (no **, no __, no ##).
+9. Skip opinion pieces, duplicate items, or vague/minor updates.
+10. CRITICAL: Total output MUST be under 3000 characters. Count carefully.
+11. Never invent facts — only use what is in the data below.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 NEWS ITEMS (JSON):
@@ -93,9 +102,9 @@ NEWS ITEMS (JSON):
 {items_json}"""
 
 
-def process_with_deepseek(articles: list) -> str:
+def process_with_deepseek(articles: list, issue_number: int, week_label: str) -> str:
     """Send articles to DeepSeek and return a Telegram-ready digest string."""
-    prompt = _build_prompt(articles)
+    prompt = _build_prompt(articles, issue_number, week_label)
     print(f"📤 Sending {len(articles)} items to DeepSeek...")
 
     resp = requests.post(
