@@ -1,12 +1,14 @@
 """
 telegram_bot.py — Sends the formatted digest to a Telegram channel.
-Cover image generated via Pollinations.ai (free, no API key needed).
+Cover image is generated locally via Pillow (no external APIs).
 """
 
 import os
 import time
 
 import requests
+
+from cover_generator import generate_cover
 
 TELEGRAM_API = "https://api.telegram.org"
 MAX_LENGTH = 4096  # Telegram hard limit per message
@@ -21,7 +23,7 @@ def send_digest(text: str, issue_number: int, week_label: str) -> None:
     token = os.environ["TELEGRAM_BOT_TOKEN"]
     chat_id = os.environ["TELEGRAM_CHAT_ID"]
 
-    # 1. Try to send cover image (fails gracefully if Pollinations is down)
+    # 1. Send cover image
     _send_cover(token, chat_id, issue_number, week_label)
     time.sleep(1)
 
@@ -39,40 +41,28 @@ def send_digest(text: str, issue_number: int, week_label: str) -> None:
 # ─────────────────────────────────────────────
 
 def _send_cover(token: str, chat_id: str, issue_number: int, week_label: str) -> None:
-    """Generate a cover image via Pollinations.ai and send it with a short caption."""
+    """Generate cover locally and send as photo with short caption."""
     try:
-        prompt = (
-            "Squeezed AI weekly newsletter cover art, "
-            "dark background with glowing neural network connections, "
-            "deep blue and purple gradient, minimalist tech aesthetic, "
-            "professional digital magazine style, high quality"
-        )
-        encoded = requests.utils.quote(prompt)
-        image_url = (
-            f"https://image.pollinations.ai/prompt/{encoded}"
-            f"?width=1280&height=720&nologo=true&seed={issue_number}"
-        )
-
-        print("🎨 Generating cover image...")
-        img_resp = requests.get(image_url, timeout=60)
-        img_resp.raise_for_status()
+        print(f"🎨 Generating cover image (issue #{issue_number})...")
+        image_bytes = generate_cover(issue_number, week_label)
+        print(f"  ✓ Image generated ({len(image_bytes)} bytes)")
 
         caption = f"🤖 <b>Squeezed AI #{issue_number}</b> · <i>{week_label}</i>"
 
         resp = requests.post(
             f"{TELEGRAM_API}/bot{token}/sendPhoto",
-            files={"photo": ("cover.jpg", img_resp.content, "image/jpeg")},
+            files={"photo": ("cover.jpg", image_bytes, "image/jpeg")},
             data={"chat_id": chat_id, "caption": caption, "parse_mode": "HTML"},
             timeout=30,
         )
 
         if resp.ok:
-            print("  ✓ Cover image sent")
+            print("  ✓ Cover sent to Telegram")
         else:
             print(f"  ⚠️  Cover send failed: {resp.text[:120]}")
 
     except Exception as exc:
-        print(f"  ⚠️  Cover image skipped ({exc}). Sending text only.")
+        print(f"  ⚠️  Cover skipped: {exc}. Continuing with text only.")
 
 
 # ─────────────────────────────────────────────
@@ -124,11 +114,11 @@ def _send_chunk(token: str, chat_id: str, text: str) -> None:
 
 
 # ─────────────────────────────────────────────
-# Legacy helper (kept for compatibility)
+# Legacy helper
 # ─────────────────────────────────────────────
 
 def send_message(text: str) -> None:
-    """Send plain text without cover image (used as fallback)."""
+    """Send plain text without cover image (fallback)."""
     token = os.environ["TELEGRAM_BOT_TOKEN"]
     chat_id = os.environ["TELEGRAM_CHAT_ID"]
     for chunk in _split(text):
